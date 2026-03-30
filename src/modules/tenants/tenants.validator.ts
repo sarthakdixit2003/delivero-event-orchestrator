@@ -1,4 +1,4 @@
-import { ValidationError } from '../../errors/index.js';
+import { ValidationError } from '@/errors/index.js';
 
 export function getTenantByIdValidator(id: string) {
   if (!id || typeof id !== 'string') throw new ValidationError('Id is required and must be a string');

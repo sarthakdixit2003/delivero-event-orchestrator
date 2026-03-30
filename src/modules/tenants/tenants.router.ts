@@ -2,8 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { createTenantValidator, getTenantByIdValidator, updateTenantValidator } from './tenants.validator.js';
 import { TenantsService } from './tenants.service.js';
 import type { CreateTenantDto, UpdateTenantDto } from './tenants.dto.js';
-import type { Tenant } from './tenants.model.js';
-import { validateAllowedFields } from '../../utils/validator.utils.js';
+import { validateAllowedFields } from '@/utils/validator.utils.js';
 
 const tenantsRouter = Router();
 

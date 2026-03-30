@@ -1,9 +1,9 @@
 import type { Pool, QueryResult } from 'pg';
 import type { CreateTenantDto, UpdateTenantDto } from './tenants.dto.js';
-import { InternalServerError, ValidationError } from '../../errors/index.js';
+import { InternalServerError, ValidationError } from '@/errors/index.js';
 import type { Tenant } from './tenants.model.js';
-import pool from '../../db-utils/db.js';
-import logger from '../../logger/logger.js';
+import pool from '@/db-utils/db.js';
+import logger from '@/logger/logger.js';
 import type { Logger } from 'pino';
 
 export class TenantsService {

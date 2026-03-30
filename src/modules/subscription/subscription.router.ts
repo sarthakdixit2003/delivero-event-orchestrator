@@ -5,7 +5,7 @@ import {
   getSubscriptionByIdValidator,
   getSubscriptionsByTenantIdValidator,
 } from './subscription.validator.js';
-import { validateAllowedFields } from '../../utils/validator.utils.js';
+import { validateAllowedFields } from '@/utils/validator.utils.js';
 
 const subscriptionRouter = Router();
 

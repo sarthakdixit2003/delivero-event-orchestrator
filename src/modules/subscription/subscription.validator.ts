@@ -1,6 +1,5 @@
-import { ValidationError } from '../../errors/validation.error.js';
-import { type AuthTypeEnum, type CreateSubscriptionDto } from './subscription.dto.js';
-import type { Subscription } from './subscription.model.js';
+import { ValidationError } from '@/errors/validation.error.js';
+import { type CreateSubscriptionDto } from './subscription.dto.js';
 
 export const getSubscriptionsByTenantIdValidator = (tenantId: string) => {
   if (!tenantId) {

@@ -4,6 +4,8 @@ import eventsRouter from './modules/events/events.router.js';
 import { errorMiddleware } from './middleware/index.js';
 import tenantsRouter from './modules/tenants/tenants.router.js';
 import subscriptionRouter from './modules/subscription/subscription.router.js';
+import startPublisher from './modules/workers/outbox-publisher.js';
+import logger from './logger/logger.js';
 
 dotenv.config();
 
@@ -24,5 +26,7 @@ app.get('/health', (req: Request, res: Response) => {
 app.use(errorMiddleware);
 
 app.listen(Number(process.env.PORT), () => {
-  console.log(`Event Orchestrator is running on port ${process.env.PORT}`);
+  logger.info(`Event Orchestrator is running on port ${process.env.PORT}`);
+
+  startPublisher();
 });
