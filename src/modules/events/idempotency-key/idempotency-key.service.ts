@@ -1,14 +1,15 @@
 import type { Pool, QueryResult } from 'pg';
-import pool from '../../../db-utils/db.js';
+import pool from '@/db-utils/db.js';
 import type { Logger } from 'pino';
-import logger from '../../../logger/logger.js';
+import logger from '@/logger/logger.js';
 import type { CreateIdempotencyKeyDto } from './idempotency.dto.js';
-import { InternalServerError } from '../../../errors/internal.error.js';
+import { InternalServerError } from '@/errors/internal.error.js';
 import type { IdempotencyKey } from './idempotency-key.model.js';
 
 export interface IdempotencyKeyServiceInterface {
   createIdempotencykey(body: CreateIdempotencyKeyDto): Promise<IdempotencyKey | undefined>;
-  getIdempotencyKey(tenantId: string): Promise<IdempotencyKey | null>;
+  getIdempotencyKeys(tenantId: string): Promise<IdempotencyKey[] | null>;
+  getByIdempotencyKey(tenantId: string, idempotencyKey: string): Promise<IdempotencyKey | null>;
   deleteIdempotencyKeyById(idempotencyKey: string): Promise<void>;
 }
 
@@ -40,7 +41,7 @@ export class IdempotencyKeyService implements IdempotencyKeyServiceInterface {
     }
   }
 
-  async getIdempotencyKey(tenantId: string): Promise<IdempotencyKey | null> {
+  async getIdempotencyKeys(tenantId: string): Promise<IdempotencyKey[]> {
     const client = await this.pool.connect();
     try {
       const query = `
@@ -48,13 +49,30 @@ export class IdempotencyKeyService implements IdempotencyKeyServiceInterface {
       `;
       const values = [tenantId];
       const result: QueryResult<IdempotencyKey> = await client.query(query, values);
-      if (!result?.rows?.[0]) {
-        return null;
-      }
-      return result.rows[0];
+
+      return result.rows;
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerError('Failed to get idempotency key');
+      throw new InternalServerError(`Failed to get idempotency keys for tenant ${tenantId}`);
+    } finally {
+      client.release();
+    }
+  }
+
+  async getByIdempotencyKey(tenantId: string, idempotencyKey: string): Promise<IdempotencyKey | null> {
+    const client = await this.pool.connect();
+    try {
+      const query = `
+        SELECT * FROM idempotency_key WHERE tenant_id = $1 and idempotency_key = $2
+      `;
+      const values = [tenantId, idempotencyKey];
+      const result: QueryResult<IdempotencyKey> = await client.query(query, values);
+      return result?.rows?.[0] || null;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerError(
+        `Failed to get idempotency key for tenant ${tenantId} and idempotency key ${idempotencyKey}`,
+      );
     } finally {
       client.release();
     }

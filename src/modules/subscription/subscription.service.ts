@@ -1,11 +1,19 @@
 import type { Pool, QueryResult } from 'pg';
-import pool from '../../db-utils/db.js';
-import { InternalServerError, NotFoundError } from '../../errors/index.js';
+import pool from '@/db-utils/db.js';
+import { InternalServerError, NotFoundError } from '@/errors/index.js';
 import type { Logger } from 'pino';
-import logger from '../../logger/logger.js';
+import logger from '@/logger/logger.js';
 import type { Subscription } from './subscription.model.js';
 
-export class SubscriptionService {
+export interface SubscriptionServiceInterface {
+  getSubscriptionsByTenantId(tenantId: string): Promise<Subscription[]>;
+  getSubscriptionById(id: string, tenantId: string): Promise<Subscription>;
+  createSubscription(subscription: Subscription): Promise<Subscription>;
+  updateSubscriptionById(id: string, tenantId: string, subscription: Subscription): Promise<Subscription>;
+  deleteSubscriptionById(id: string, tenantId: string): Promise<void>;
+}
+
+export class SubscriptionService implements SubscriptionServiceInterface {
   private pool: Pool;
   private logger: Logger;
 

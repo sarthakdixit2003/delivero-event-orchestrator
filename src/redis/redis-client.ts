@@ -1,6 +1,6 @@
-import Redis from 'ioredis';
+import IORedis from 'ioredis';
 
-const redisClient = new Redis.default({
+const redisClient: IORedis.Redis = new IORedis.default({
   host: process.env.REDIS_HOST,
   port: Number(process.env.REDIS_PORT),
   maxRetriesPerRequest: null,

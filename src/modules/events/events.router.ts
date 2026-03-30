@@ -1,8 +1,8 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
-import { validateAllowedFields } from '../../utils/validator.utils.js';
+import { validateAllowedFields } from '@/utils/validator.utils.js';
 import { EventsService } from './events.service.js';
 import type { CreateEventDto } from './events.dto.js';
-import logger from '../../logger/logger.js';
+import logger from '@/logger/logger.js';
 
 const eventsRouter = Router();
 
