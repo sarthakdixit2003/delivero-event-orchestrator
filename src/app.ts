@@ -6,6 +6,7 @@ import tenantsRouter from './modules/tenants/tenants.router.js';
 import subscriptionRouter from './modules/subscription/subscription.router.js';
 import startPublisher from './modules/workers/outbox-publisher.js';
 import logger from './logger/logger.js';
+import rulesRouter from './modules/rules/rules.router.js';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ const API_V1_PREFIX = '/api/v1';
 app.use(`${API_V1_PREFIX}/events`, eventsRouter);
 app.use(`${API_V1_PREFIX}/tenants`, tenantsRouter);
 app.use(`${API_V1_PREFIX}/subscriptions`, subscriptionRouter);
+app.use(`${API_V1_PREFIX}/rules`, rulesRouter);
 
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
