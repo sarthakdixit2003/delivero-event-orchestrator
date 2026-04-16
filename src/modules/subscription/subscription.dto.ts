@@ -13,4 +13,5 @@ export interface CreateSubscriptionDto {
   concurrency_limit?: number;
   rate_limit_rps?: number;
   enabled?: boolean;
+  rule_id?: number;
 }

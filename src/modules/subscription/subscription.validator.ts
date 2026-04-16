@@ -26,6 +26,12 @@ export const getSubscriptionByIdValidator = (id: string, tenantId: string) => {
 };
 
 export const createSubscriptionValidator = (subscription: CreateSubscriptionDto) => {
+  if (!subscription.rule_id) {
+    throw new ValidationError('Rule ID is required');
+  }
+  if (typeof subscription.rule_id !== 'number') {
+    throw new ValidationError('Rule ID must be a number');
+  }
   if (!subscription.name) {
     throw new ValidationError('Name is required');
   }
