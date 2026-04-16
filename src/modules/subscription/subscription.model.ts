@@ -3,6 +3,7 @@ import type { AuthTypeEnum } from './subscription.dto.js';
 export interface Subscription {
   id: string;
   tenant_id: string;
+  rule_id: number | null;
   name: string;
   endpoint_url: string;
   auth_type: AuthTypeEnum;

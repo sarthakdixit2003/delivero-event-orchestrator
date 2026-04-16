@@ -4,11 +4,12 @@ import { InternalServerError, NotFoundError } from '@/errors/index.js';
 import type { Logger } from 'pino';
 import logger from '@/logger/logger.js';
 import type { Subscription } from './subscription.model.js';
+import type { CreateSubscriptionDto } from './subscription.dto.js';
 
 export interface SubscriptionServiceInterface {
   getSubscriptionsByTenantId(tenantId: string): Promise<Subscription[]>;
   getSubscriptionById(id: string, tenantId: string): Promise<Subscription>;
-  createSubscription(subscription: Subscription): Promise<Subscription>;
+  createSubscription(subscription: CreateSubscriptionDto): Promise<Subscription>;
   updateSubscriptionById(id: string, tenantId: string, subscription: Subscription): Promise<Subscription>;
   deleteSubscriptionById(id: string, tenantId: string): Promise<void>;
 }
@@ -61,7 +62,7 @@ export class SubscriptionService implements SubscriptionServiceInterface {
     }
   }
 
-  async createSubscription(subscription: Subscription): Promise<Subscription> {
+  async createSubscription(subscription: CreateSubscriptionDto): Promise<Subscription> {
     const client = await this.pool.connect();
     try {
       const fields = [];
@@ -113,6 +114,12 @@ export class SubscriptionService implements SubscriptionServiceInterface {
       if (subscription.endpoint_url) {
         fields.push(`endpoint_url`);
         values.push(subscription.endpoint_url);
+        placeholders.push(`$${index}`);
+        index++;
+      }
+      if (subscription.rule_id) {
+        fields.push(`rule_id`);
+        values.push(subscription.rule_id);
         placeholders.push(`$${index}`);
         index++;
       }
