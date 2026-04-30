@@ -21,14 +21,18 @@ async function publishOutbox() {
     const jobs = res.rows;
 
     for (const job of jobs) {
-      eventsQueue.add('process-event', job, {
-        jobId: `EVENT-${job.id}`,
-        attempts: job.max_retries,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+      eventsQueue.add(
+        'process-event',
+        { event_id: job.event_id, outbox_id: job.id, task_type: job.task_type },
+        {
+          jobId: `EVENT-${job.id}`,
+          attempts: job.max_retries,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
-      });
+      );
 
       await client.query(
         `

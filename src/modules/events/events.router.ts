@@ -9,7 +9,7 @@ const eventsRouter = Router();
 eventsRouter.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     validateAllowedFields(req.body, ['tenant_id', 'event_type', 'source', 'original_payload', 'idempotency_key']);
-    logger.info(`Creating event ${JSON.stringify(req.body)}`);
+
     const event = await new EventsService().createEvent({
       tenant_id: req.body?.tenant_id,
       event_type: req.body?.event_type,
@@ -17,7 +17,7 @@ eventsRouter.post('/', async (req: Request, res: Response, next: NextFunction) =
       original_payload: req.body?.original_payload,
       idempotency_key: req.body?.idempotency_key,
     } as CreateEventDto);
-    logger.info(`Event created ${JSON.stringify(event)}`);
+
     res.status(201).json(event);
   } catch (error) {
     next(error);

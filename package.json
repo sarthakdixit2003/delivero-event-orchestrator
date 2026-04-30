@@ -25,6 +25,7 @@
   "author": "Sarthak Dixit",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.15.2",
     "bullmq": "^5.71.0",
     "express": "^5.2.1",
     "ioredis": "^5.10.0",
