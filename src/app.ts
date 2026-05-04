@@ -7,6 +7,7 @@ import subscriptionRouter from './modules/subscription/subscription.router.js';
 import startPublisher from './modules/workers/outbox-publisher.js';
 import logger from './logger/logger.js';
 import rulesRouter from './modules/rules/rules.router.js';
+import { eventsWorker } from './modules/workers/events.worker.js';
 
 dotenv.config();
 

@@ -18,4 +18,7 @@ export const env = {
   DB_USER: requireEnv('DB_USER'),
   DB_PASSWORD: requireEnv('DB_PASSWORD'),
   DB_NAME: requireEnv('DB_NAME'),
+  REDIS_HOST: requireEnv('REDIS_HOST'),
+  REDIS_PORT: Number(requireEnv('REDIS_PORT')),
+  TRANSFORM_API_BASE_URL: requireEnv('TRANSFORM_API_BASE_URL'),
 };
