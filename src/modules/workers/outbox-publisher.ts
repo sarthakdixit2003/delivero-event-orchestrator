@@ -23,7 +23,10 @@ async function publishOutbox() {
     for (const job of jobs) {
       eventsQueue.add(
         'process-event',
-        { event_id: job.event_id, subscription_id: job.subscription_id, outbox_id: job.id, task_type: job.task_type },
+        {
+          ...job,
+          outbox_id: job.id,
+        },
         {
           jobId: `EVENT-${job.id}`,
           attempts: job.max_retries,
