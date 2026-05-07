@@ -29,7 +29,7 @@ export class SubscriptionService implements SubscriptionServiceInterface {
       const subscriptions: QueryResult<Subscription> = await client.query(
         `
         SELECT * FROM subscription
-        WHERE deleted_at IS NULL and enabled = true and tenant_id = $1
+        WHERE tenant_id = $1 and enabled = true and deleted_at IS NULL
       `,
         [tenantId],
       );
@@ -47,7 +47,7 @@ export class SubscriptionService implements SubscriptionServiceInterface {
     try {
       const subscription: QueryResult<Subscription> = await client.query(
         `SELECT * FROM subscription
-        WHERE deleted_at IS NULL and enabled = true and id = $1 and tenant_id = $2`,
+        WHERE id = $1 and tenant_id = $2 and enabled = true and deleted_at IS NULL`,
         [id, tenantId],
       );
       if (!subscription.rows[0]) {

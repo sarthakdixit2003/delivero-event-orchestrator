@@ -5,14 +5,8 @@ import axios from 'axios';
 import logger from '@/logger/logger.js';
 import { env } from '@/config/env.js';
 
-export async function transformEventHandler(
-  event_id: string,
-  tenant_id: string,
-  subscription_id: string,
-  outbox_id: string,
-  client: PoolClient,
-  worker_id: string,
-) {
+export async function transformEventHandler(jobData: any, client: PoolClient, worker_id: string) {
+  const { event_id, tenant_id, subscription_id, outbox_id } = jobData;
   try {
     await client.query('BEGIN');
     const query = `
@@ -24,13 +18,13 @@ export async function transformEventHandler(
         join rule_version rv
         on rv.rule_id = s.rule_id
 
-        where e.id = $2 and rv.version_number = (
+        where e.id = $2 and e.deleted_at is null and s.tenant_id = $3 and s.enabled = true and s.deleted_at is null and rv.version_number = (
           select max(version_number)
           from rule_version
           where rule_id = s.rule_id
         );
       `;
-    const res = await client.query(query, [subscription_id, event_id]);
+    const res = await client.query(query, [subscription_id, event_id, tenant_id]);
     if (res?.rows?.length < 1) {
       throw new NotFoundError(`Event ${event_id} not found`);
     }

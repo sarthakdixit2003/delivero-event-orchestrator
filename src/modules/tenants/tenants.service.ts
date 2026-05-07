@@ -5,6 +5,8 @@ import type { Tenant } from './tenants.model.js';
 import pool from '@/db-utils/db.js';
 import logger from '@/logger/logger.js';
 import type { Logger } from 'pino';
+import { CacheTags } from '@/redis/utils.js';
+import { invalidateCacheTag } from '@/redis/cache.middleware.js';
 
 export class TenantsService {
   private pool: Pool;
@@ -62,6 +64,10 @@ export class TenantsService {
         `,
         [body.name],
       );
+
+      const tags = CacheTags.tenantList();
+      await invalidateCacheTag(tags);
+
       return result?.rows?.[0];
     } catch (error) {
       this.logger.error(error);
@@ -84,6 +90,9 @@ export class TenantsService {
       `,
         [id],
       );
+
+      const tags = CacheTags.tenant(id);
+      await invalidateCacheTag(tags);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerError(`Failed to delete tenant by id: ${error}`);
@@ -122,6 +131,9 @@ export class TenantsService {
         WHERE id = $${index}
         RETURNING *
       `;
+
+      const tags = CacheTags.tenant(id);
+      await invalidateCacheTag(tags);
 
       const result = await client.query(query, values);
       return result?.rows?.[0];

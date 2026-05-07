@@ -3,16 +3,18 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { RulesService } from './rules.service.js';
 import logger from '@/logger/logger.js';
 import { ValidationError } from '@/errors/validation.error.js';
+import { getTenantId } from '@/redis/utils.js';
 
 const rulesRouter = Router();
 
 rulesRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info(`Getting rules for tenant ${JSON.stringify(req.query)}`);
-    if (!req.query?.tenant_id || typeof req.query?.tenant_id !== 'string') {
-      throw new ValidationError('Tenant ID should be a string');
+    const tenant_id = getTenantId(req);
+    if (!tenant_id) {
+      throw new ValidationError('Tenant ID is required');
     }
-    const rules = await new RulesService().getRules(req.query.tenant_id);
+    const rules = await new RulesService().getRules(tenant_id);
     res.status(200).json(rules);
   } catch (error) {
     next(error);
@@ -22,15 +24,13 @@ rulesRouter.get('/', async (req: Request, res: Response, next: NextFunction) => 
 rulesRouter.get('/:rule_id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const rule_id = req.params.rule_id;
-    const tenant_id = req.query.tenant_id;
-    if (!rule_id || typeof rule_id !== 'string') {
-      throw new ValidationError(`Rule should be a number`);
-    }
-    if (!tenant_id || typeof tenant_id !== 'string') {
-      throw new ValidationError('Tenant ID should be a string');
+    const tenant_id = getTenantId(req);
+
+    if (!tenant_id) {
+      throw new ValidationError('Tenant ID is required');
     }
 
-    const rules = await new RulesService().getRules(tenant_id, rule_id);
+    const rules = await new RulesService().getRules(tenant_id, rule_id as string);
     res.status(200).json(rules);
   } catch (error) {
     next(error);
@@ -48,7 +48,7 @@ rulesRouter.post('/', async (req: Request, res: Response, next: NextFunction) =>
   }
 });
 
-rulesRouter.patch('/:rule_id', async (req: Request, res: Response, next: NextFunction) => {
+rulesRouter.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     validateAllowedFields(req.body, [
       'name',
@@ -58,8 +58,8 @@ rulesRouter.patch('/:rule_id', async (req: Request, res: Response, next: NextFun
       'changes_summary',
       'enabled',
     ]);
-    const rule_id = req.params.rule_id;
-    const tenant_id = req.query.tenant_id;
+    const rule_id = req.params.id;
+    const tenant_id = getTenantId(req);
     if (!rule_id || typeof rule_id !== 'string') {
       throw new ValidationError(`Rule ID is required`);
     }
@@ -73,10 +73,10 @@ rulesRouter.patch('/:rule_id', async (req: Request, res: Response, next: NextFun
   }
 });
 
-rulesRouter.delete('/:rule_id', async (req: Request, res: Response, next: NextFunction) => {
+rulesRouter.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const rule_id = req.params.rule_id;
-    const tenant_id = req.query.tenant_id;
+    const rule_id = req.params.id;
+    const tenant_id = getTenantId(req);
     if (!rule_id || typeof rule_id !== 'string') {
       throw new ValidationError(`Rule ID is required`);
     }

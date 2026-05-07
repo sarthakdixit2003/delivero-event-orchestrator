@@ -32,13 +32,13 @@ export const eventsWorker = new Worker(
   async (job: Job) => {
     const client = await pool.connect();
     try {
-      const { event_id, tenant_id, subscription_id, task_type, outbox_id } = job.data;
-      if (!event_id) {
-        throw new NotFoundError(`Event not found for outbox id: ${outbox_id}`);
+      const jobData = job.data;
+      if (!jobData?.event_id) {
+        throw new NotFoundError(`Event not found for outbox id: ${jobData?.outbox_id}`);
       }
-      logger.info(`Processing event ${event_id} in worker ${worker_id} with outbox id: ${outbox_id}`);
-      const handler = eventHandlers(task_type);
-      await handler(event_id, tenant_id, subscription_id, outbox_id, client, worker_id);
+      logger.info(`Processing event ${jobData?.event_id} in worker ${worker_id} with outbox id: ${jobData?.outbox_id}`);
+      const handler = eventHandlers(jobData?.task_type);
+      await handler(jobData, client, worker_id);
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;
@@ -60,8 +60,9 @@ export const eventsWorker = new Worker(
 eventsWorker.on('failed', async (job) => {
   if (!job) return;
   if (job.attemptsMade >= (job.opts?.attempts ?? 0)) {
+    const jobData = job.data;
     logger.error(
-      `Event ${job.data.event_id} failed in worker ${worker_id} after ${job.attemptsMade} attempts: ${job.failedReason}`,
+      `Event ${jobData?.event_id} failed in worker ${worker_id} after ${job.attemptsMade} attempts: ${job.failedReason}`,
     );
     const client = await pool.connect();
 

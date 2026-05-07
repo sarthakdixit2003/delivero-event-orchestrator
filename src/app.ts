@@ -7,7 +7,8 @@ import subscriptionRouter from './modules/subscription/subscription.router.js';
 import startPublisher from './modules/workers/outbox-publisher.js';
 import logger from './logger/logger.js';
 import rulesRouter from './modules/rules/rules.router.js';
-import { eventsWorker } from './modules/workers/events.worker.js';
+import { cacheMiddleware } from './redis/cache.middleware.js';
+import { cacheConfig } from './redis/cache.config.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
+app.use(cacheMiddleware(cacheConfig));
 app.use(errorMiddleware);
 
 app.listen(Number(process.env.PORT), () => {
