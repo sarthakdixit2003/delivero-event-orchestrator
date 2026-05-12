@@ -5,8 +5,8 @@ import axios from 'axios';
 import logger from '@/logger/logger.js';
 import { env } from '@/config/env.js';
 
-export async function transformEventHandler(jobData: any, client: PoolClient, worker_id: string) {
-  const { event_id, tenant_id, subscription_id, outbox_id } = jobData;
+export async function transformEventHandler(job: any, client: PoolClient, worker_id: string) {
+  const { event_id, tenant_id, subscription_id, outbox_id } = job.data;
   try {
     await client.query('BEGIN');
     const query = `
@@ -59,9 +59,9 @@ export async function transformEventHandler(jobData: any, client: PoolClient, wo
       `
         UPDATE event_outbox
         SET status = $1, updated_at = now()
-        WHERE id = $2
+        WHERE id = $2 AND status = $3
       `,
-      ['COMPLETED', outbox_id],
+      ['COMPLETED', outbox_id, 'PROCESSING'],
     );
     await client.query(
       `
@@ -76,11 +76,13 @@ export async function transformEventHandler(jobData: any, client: PoolClient, wo
     logger.error(`Error transforming event in worker ${worker_id} with outbox id: ${outbox_id}: ${error.message}`);
     await client.query('ROLLBACK');
     await client.query(
-      `UPDATE event_outbox
-         SET retry_count = retry_count + 1,
-             error_message = $1,
-             updated_at = now()
-         WHERE id = $2`,
+      `
+      UPDATE event_outbox
+      SET retry_count = retry_count + 1, 
+          error_message = $1, 
+          updated_at = now()
+         WHERE id = $2
+      `,
       [error.message, outbox_id],
     );
     if (error instanceof NotFoundError) throw error;

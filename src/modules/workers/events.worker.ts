@@ -38,7 +38,7 @@ export const eventsWorker = new Worker(
       }
       logger.info(`Processing event ${jobData?.event_id} in worker ${worker_id} with outbox id: ${jobData?.outbox_id}`);
       const handler = eventHandlers(jobData?.task_type);
-      await handler(jobData, client, worker_id);
+      await handler(job, client, worker_id);
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;
@@ -60,24 +60,67 @@ export const eventsWorker = new Worker(
 eventsWorker.on('failed', async (job) => {
   if (!job) return;
   if (job.attemptsMade >= (job.opts?.attempts ?? 0)) {
-    const jobData = job.data;
-    logger.error(
-      `Event ${jobData?.event_id} failed in worker ${worker_id} after ${job.attemptsMade} attempts: ${job.failedReason}`,
-    );
-    const client = await pool.connect();
+    if (job.data?.task_type === 'TRANSFORM') {
+      const jobData = job.data;
+      logger.error(
+        `EVENTS WORKER: Event ${jobData?.event_id} failed in worker ${worker_id} after ${job.attemptsMade} attempts: ${job.failedReason}`,
+      );
+      const client = await pool.connect();
 
-    try {
-      await client.query(
-        `UPDATE event_outbox
+      try {
+        await client.query(
+          `UPDATE event_outbox
          SET status = 'FAILED',
              updated_at = now()
          WHERE id = $1`,
-        [job.data.outbox_id],
+          [job.data.outbox_id],
+        );
+      } catch (error) {
+        logger.error(`EVENTS WORKER: Error updating event outbox in worker ${worker_id}: ${error}`);
+      } finally {
+        client.release();
+      }
+    } else if (job.data?.task_type === 'DELIVER') {
+      const jobData = job.data;
+      logger.error(
+        `EVENTS WORKER: Event ${jobData?.event_id} failed in worker ${worker_id} after ${job.attemptsMade} attempts: ${job.failedReason}`,
       );
-    } catch (error) {
-      logger.error(`Error updating event outbox in worker ${worker_id}: ${error}`);
-    } finally {
-      client.release();
+      const client = await pool.connect();
+
+      try {
+        const outbox_id = jobData?.outbox_id;
+        const event_id = jobData?.event_id;
+        const tenant_id = jobData?.tenant_id;
+        const subscription_id = jobData?.subscription_id;
+        const rule_id = jobData?.rule_id;
+        const rule_version_number = jobData?.rule_version_number;
+        const transformed_payload = jobData?.transformed_payload;
+
+        await client.query('BEGIN');
+        await client.query(
+          `
+        UPDATE event_outbox
+        SET status = 'FAILED', updated_at = now()
+        WHERE id = $1
+      `,
+          [outbox_id],
+        );
+        await client.query(
+          `
+        INSERT INTO event_outbox (event_id, tenant_id, subscription_id, rule_id, rule_version_number, source_outbox_id, transformed_payload, task_type)  
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `,
+          [event_id, tenant_id, subscription_id, rule_id, rule_version_number, outbox_id, transformed_payload, 'DLQ'],
+        );
+        await client.query('COMMIT');
+      } catch (error) {
+        logger.error(`EVENTS WORKER: Error updating event outbox in worker ${worker_id}: ${error}`);
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     }
   }
 });

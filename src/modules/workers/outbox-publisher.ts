@@ -14,8 +14,8 @@ async function transformJobHandler(client: PoolClient) {
         AND status = 'PENDING'
         AND task_type = 'TRANSFORM'
       ORDER BY scheduled_at ASC
-      LIMIT 10  
       FOR UPDATE SKIP LOCKED
+      LIMIT 10;
     `);
 
     const jobs = res.rows;
@@ -56,7 +56,7 @@ async function transformJobHandler(client: PoolClient) {
 async function deliverJobHandler(client: PoolClient) {
   try {
     const res = await client.query(`
-      SELECT eo.event_id as "event_id", eo.rule_id as "rule_id", eo.rule_version_number as "rule_version_number", eo.transformed_payload as "transformed_payload", eo.task_type as "task_type", eo.status as "status", s.concurrency_limit, s.endpoint_url, s.max_retries_allowed as "max_retries", s.rate_limit_rps 
+      SELECT eo.id as "id", eo.event_id as "event_id", s.tenant_id as "tenant_id", s.id as "subscription_id", eo.rule_id as "rule_id", eo.rule_version_number as "rule_version_number", eo.transformed_payload as "transformed_payload", eo.task_type as "task_type", eo.status as "status", s.concurrency_limit, s.endpoint_url, s.max_retries_allowed as "max_retries", s.rate_limit_rps 
       FROM event_outbox eo
       JOIN subscription s
       ON s.id = eo.subscription_id
@@ -66,12 +66,15 @@ async function deliverJobHandler(client: PoolClient) {
         AND s.enabled = true
         AND s.deleted_at is null
       ORDER BY scheduled_at ASC
-      LIMIT 10; 
       FOR UPDATE SKIP LOCKED
+      LIMIT 10;
     `);
 
     const jobs = res.rows;
     for (const job of jobs) {
+      logger.info(`DELIVER: Publishing event ${job.event_id} in worker ${worker_id} with outbox id: ${job.id}`);
+      logger.info(`DELIVER: Job data: ${job.subscription_id}`);
+      logger.info(`DELIVER: Job data: ${job.tenant_id}`);
       eventsQueue.add(
         'process-event',
         {
@@ -86,6 +89,16 @@ async function deliverJobHandler(client: PoolClient) {
             delay: 2000,
           },
         },
+      );
+
+      await client.query(
+        `
+          UPDATE event_outbox
+          SET status = 'QUEUED',
+            updated_at = now()
+          WHERE id = $1
+        `,
+        [job.id],
       );
     }
   } catch (error: any) {
