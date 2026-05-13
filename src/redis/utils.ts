@@ -32,10 +32,6 @@ function normalizeQuery(query: Record<string, any>): string {
   return JSON.stringify(normalized);
 }
 
-export function getTenantId(req: Request): string {
-  return (req.headers['x-tenant-id'] as string) || (req.query.tenant_id as string) || 'public';
-}
-
 function hash(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
@@ -47,7 +43,7 @@ export function generateCacheKey(req: Request): string {
   const method = req.method;
   const path = req.baseUrl + req.path;
 
-  const tenantId = getTenantId(req);
+  const tenantId = req.tenant_id;
 
   const normalizedQuery = normalizeQuery(req.query);
 

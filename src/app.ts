@@ -7,14 +7,18 @@ import subscriptionRouter from './modules/subscription/subscription.router.js';
 import startPublisher from './modules/workers/outbox-publisher.js';
 import logger from './logger/logger.js';
 import rulesRouter from './modules/rules/rules.router.js';
-import { cacheMiddleware } from './redis/cache.middleware.js';
+import { cacheMiddleware } from './middleware/index.js';
 import { cacheConfig } from './redis/cache.config.js';
+import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware.js';
 
 dotenv.config();
 
 const app: Express = express();
 
 app.use(express.json());
+
+app.use(tenantAuthMiddleware);
+app.use(cacheMiddleware(cacheConfig));
 
 const API_V1_PREFIX = '/api/v1';
 
@@ -27,7 +31,6 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
-app.use(cacheMiddleware(cacheConfig));
 app.use(errorMiddleware);
 
 app.listen(Number(process.env.PORT), () => {

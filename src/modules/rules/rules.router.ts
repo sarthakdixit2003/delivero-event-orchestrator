@@ -3,14 +3,13 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { RulesService } from './rules.service.js';
 import logger from '@/logger/logger.js';
 import { ValidationError } from '@/errors/validation.error.js';
-import { getTenantId } from '@/redis/utils.js';
 
 const rulesRouter = Router();
 
 rulesRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info(`Getting rules for tenant ${JSON.stringify(req.query)}`);
-    const tenant_id = getTenantId(req);
+    const tenant_id = req.tenant_id;
     if (!tenant_id) {
       throw new ValidationError('Tenant ID is required');
     }
@@ -24,7 +23,7 @@ rulesRouter.get('/', async (req: Request, res: Response, next: NextFunction) => 
 rulesRouter.get('/:rule_id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const rule_id = req.params.rule_id;
-    const tenant_id = getTenantId(req);
+    const tenant_id = req.tenant_id;
 
     if (!tenant_id) {
       throw new ValidationError('Tenant ID is required');
@@ -59,7 +58,7 @@ rulesRouter.patch('/:id', async (req: Request, res: Response, next: NextFunction
       'enabled',
     ]);
     const rule_id = req.params.id;
-    const tenant_id = getTenantId(req);
+    const tenant_id = req.tenant_id;
     if (!rule_id || typeof rule_id !== 'string') {
       throw new ValidationError(`Rule ID is required`);
     }
@@ -76,12 +75,12 @@ rulesRouter.patch('/:id', async (req: Request, res: Response, next: NextFunction
 rulesRouter.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const rule_id = req.params.id;
-    const tenant_id = getTenantId(req);
+    const tenant_id = req.tenant_id;
+    if (!tenant_id) {
+      throw new ValidationError('Tenant ID is required');
+    }
     if (!rule_id || typeof rule_id !== 'string') {
       throw new ValidationError(`Rule ID is required`);
-    }
-    if (!tenant_id || typeof tenant_id !== 'string') {
-      throw new ValidationError('Tenant ID should be a string');
     }
     await new RulesService().deleteRule(tenant_id, Number(rule_id));
     res.status(204).send();

@@ -10,20 +10,20 @@ export async function transformEventHandler(job: any, client: PoolClient, worker
   try {
     await client.query('BEGIN');
     const query = `
-        select e.id as "event_id", s.id as "subscription_id", s.rule_id, e.original_payload, rv.transform_template, rv.schema, rv.version_number
-        from events e
-        join subscription s
-        on s.id = $1
+      select e.id as "event_id", s.id as "subscription_id", e.idempotency_key as "idempotency_key", s.rule_id, s.max_retries_allowed as "max_retries", e.original_payload, rv.transform_template, rv.schema, rv.version_number
+      from events e
+      join subscription s
+      on s.id = $1
 
-        join rule_version rv
-        on rv.rule_id = s.rule_id
+      join rule_version rv
+      on rv.rule_id = s.rule_id
 
-        where e.id = $2 and e.deleted_at is null and s.tenant_id = $3 and s.enabled = true and s.deleted_at is null and rv.version_number = (
-          select max(version_number)
-          from rule_version
-          where rule_id = s.rule_id
-        );
-      `;
+      where e.id = $2 and e.deleted_at is null and s.tenant_id = $3 and s.enabled = true and s.deleted_at is null and rv.version_number = (
+        select max(version_number)
+        from rule_version
+        where rule_id = s.rule_id
+      );
+    `;
     const res = await client.query(query, [subscription_id, event_id, tenant_id]);
     if (res?.rows?.length < 1) {
       throw new NotFoundError(`Event ${event_id} not found`);
@@ -43,11 +43,13 @@ export async function transformEventHandler(job: any, client: PoolClient, worker
     const {
       event_id: _event_id,
       subscription_id: _subscription_id,
+      idempotency_key: _idempotency_key,
       rule_id,
       original_payload,
       transform_template,
       schema,
       version_number,
+      max_retries,
     } = res.rows[0];
 
     const rule = { transform_template, validation_schema: schema };
@@ -65,11 +67,11 @@ export async function transformEventHandler(job: any, client: PoolClient, worker
     );
     await client.query(
       `
-      INSERT INTO event_outbox (event_id, tenant_id, subscription_id, rule_id, rule_version_number, source_outbox_id, transformed_payload, task_type)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
+        INSERT INTO event_outbox (event_id, tenant_id, subscription_id, rule_id, rule_version_number, source_outbox_id, transformed_payload, task_type, max_retries)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
       `,
-      [event_id, tenant_id, subscription_id, rule_id, version_number, outbox_id, response.data, 'DELIVER'],
+      [event_id, tenant_id, subscription_id, rule_id, version_number, outbox_id, response.data, 'DELIVER', max_retries],
     );
     await client.query('COMMIT');
   } catch (error: any) {
@@ -77,11 +79,11 @@ export async function transformEventHandler(job: any, client: PoolClient, worker
     await client.query('ROLLBACK');
     await client.query(
       `
-      UPDATE event_outbox
-      SET retry_count = retry_count + 1, 
-          error_message = $1, 
-          updated_at = now()
-         WHERE id = $2
+        UPDATE event_outbox
+        SET retry_count = retry_count + 1, 
+            error_message = $1, 
+            updated_at = now()
+          WHERE id = $2
       `,
       [error.message, outbox_id],
     );

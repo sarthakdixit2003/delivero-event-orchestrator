@@ -4,6 +4,7 @@ import redisClient from '@/redis/redis-client.js';
 import axios from 'axios';
 import type { Job } from 'bullmq';
 import type { PoolClient } from 'pg';
+import crypto from 'crypto';
 
 export async function deliverEventHandler(job: Job, client: PoolClient, worker_id: string) {
   const {
@@ -18,7 +19,7 @@ export async function deliverEventHandler(job: Job, client: PoolClient, worker_i
     transformed_payload,
   } = job.data;
 
-  const requestHeaders = {
+  const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Event-Id': event_id,
   };
@@ -67,7 +68,7 @@ export async function deliverEventHandler(job: Job, client: PoolClient, worker_i
       );
       return;
     }
-
+    await client.query('BEGIN');
     await client.query(
       `
       UPDATE event_outbox
@@ -76,6 +77,27 @@ export async function deliverEventHandler(job: Job, client: PoolClient, worker_i
     `,
       ['PROCESSING', worker_id, outbox_id, 'QUEUED'],
     );
+    const res_idem_key_auth = await client.query(
+      `
+      SELECT e.idempotency_key as "idempotency_key", s.auth_type as "auth_type", s.auth_secret_ref as "auth_secret_ref"
+      FROM events e 
+      JOIN subscription s
+      ON s.id = $1
+      WHERE e.id = $2 and e.deleted_at is null
+    `,
+      [subscription_id, event_id],
+    );
+    await client.query('COMMIT');
+    const { idempotency_key, auth_type, auth_secret_ref } = res_idem_key_auth.rows[0];
+    if (!idempotency_key) {
+      throw new NotFoundError(`Idempotency key not found for event ${event_id}`);
+    }
+    if (auth_type === 'hmac') {
+      const rawBody = JSON.stringify(requestBody);
+      const signature = crypto.createHmac('sha256', auth_secret_ref).update(rawBody).digest('hex');
+      requestHeaders['X-Signature'] = signature;
+      requestHeaders['X-Idempotency-Key'] = idempotency_key;
+    }
     started_at = new Date();
     // Call webhook with transformed payload
     const res = await axios.post(endpoint_url, requestBody, {

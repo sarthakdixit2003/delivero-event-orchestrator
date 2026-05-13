@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
-import { generateCacheKey, matchRoute } from './utils.js';
-import redisClient from './redis-client.js';
+import type { CacheConfig } from '@/redis/interface.js';
+import { generateCacheKey, matchRoute } from '@/redis/utils.js';
 import logger from '@/logger/logger.js';
-import type { CacheConfig } from './interface.js';
+import redisClient from '@/redis/redis-client.js';
 
 export function cacheMiddleware(config: CacheConfig[]) {
   return async (req: Request, res: Response, next: NextFunction) => {

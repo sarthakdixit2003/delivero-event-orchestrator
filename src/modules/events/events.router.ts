@@ -11,7 +11,7 @@ eventsRouter.post('/', async (req: Request, res: Response, next: NextFunction) =
     validateAllowedFields(req.body, ['tenant_id', 'event_type', 'source', 'original_payload', 'idempotency_key']);
 
     const event = await new EventsService().createEvent({
-      tenant_id: req.body?.tenant_id,
+      tenant_id: req.tenant_id as string,
       event_type: req.body?.event_type,
       source: req.body?.source,
       original_payload: req.body?.original_payload,

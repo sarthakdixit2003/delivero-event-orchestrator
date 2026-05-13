@@ -6,7 +6,7 @@ import pool from '@/db-utils/db.js';
 import logger from '@/logger/logger.js';
 import type { Logger } from 'pino';
 import { CacheTags } from '@/redis/utils.js';
-import { invalidateCacheTag } from '@/redis/cache.middleware.js';
+import { invalidateCacheTag } from '@/middleware/index.js';
 
 export class TenantsService {
   private pool: Pool;
