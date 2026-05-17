@@ -1,7 +1,7 @@
 import express, { type Express, type Request, type Response } from 'express';
 import dotenv from 'dotenv';
 import eventsRouter from './modules/events/events.router.js';
-import { errorMiddleware } from './middleware/index.js';
+import { errorMiddleware, rateLimiterMiddleware, tenantAuthMiddleware } from './middleware/index.js';
 import tenantsRouter from './modules/tenants/tenants.router.js';
 import subscriptionRouter from './modules/subscription/subscription.router.js';
 import startPublisher from './modules/workers/outbox-publisher.js';
@@ -9,7 +9,6 @@ import logger from './logger/logger.js';
 import rulesRouter from './modules/rules/rules.router.js';
 import { cacheMiddleware } from './middleware/index.js';
 import { cacheConfig } from './redis/cache.config.js';
-import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware.js';
 
 dotenv.config();
 
@@ -18,6 +17,7 @@ const app: Express = express();
 app.use(express.json());
 
 app.use(tenantAuthMiddleware);
+app.use(rateLimiterMiddleware({ windowInSeconds: 60, maxRequests: 100 }));
 app.use(cacheMiddleware(cacheConfig));
 
 const API_V1_PREFIX = '/api/v1';
