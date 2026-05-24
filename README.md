@@ -2,6 +2,9 @@
 
 A high-performance, production-grade event orchestration and delivery platform designed for reliable webhook distribution, complex event transformation, and multi-tenant isolation.
 
+> [!IMPORTANT]
+> This service requires the **[Delivero Transformer Service](https://github.com/sarthakdixit2003/delivero-transformer-service)** to handle payload transformations. Ensure both services are running for full functionality.
+
 ## Overview
 
 The Event Orchestrator acts as a central hub for ingesting, processing, and delivering events across a distributed ecosystem. It ensures at-least-once delivery guarantees through the **Transactional Outbox Pattern**, supports dynamic payload transformation using versioned rules, and provides granular flow control via per-subscription rate limiting and concurrency management.
@@ -197,7 +200,8 @@ The system employs a multi-tiered retry strategy:
 
 ## Transformation System
 
-The system uses an external `TRANSFORM_API_BASE_URL` to perform payload mapping.
+The system delegates payload mapping to the **[Delivero Transformer Service](https://github.com/sarthakdixit2003/delivero-transformer-service)** via the `TRANSFORM_API_BASE_URL`.
+
 - **Schema Validation:** The `rule_version` includes a JSON schema to validate the `original_payload`.
 - **Template Mapping:** Uses the `transform_template` to convert the source data into the consumer's required format.
 - **Versioning:** Subscriptions are tied to a specific `rule_id`. The worker always fetches the latest `version_number` for that rule during the `TRANSFORM` stage.
