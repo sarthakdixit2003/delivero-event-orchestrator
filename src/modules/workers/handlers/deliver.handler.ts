@@ -5,6 +5,7 @@ import axios from 'axios';
 import type { Job } from 'bullmq';
 import type { PoolClient } from 'pg';
 import crypto from 'crypto';
+import { eventE2eLatency, eventsDelivered } from '@/metrics/registry.js';
 
 export async function deliverEventHandler(job: Job, client: PoolClient, worker_id: string) {
   const {
@@ -79,16 +80,18 @@ export async function deliverEventHandler(job: Job, client: PoolClient, worker_i
     );
     const res_idem_key_auth = await client.query(
       `
-      SELECT e.idempotency_key as "idempotency_key", s.auth_type as "auth_type", s.auth_secret_ref as "auth_secret_ref"
+      SELECT seo.created_at as "ingested_at" ,e.idempotency_key as "idempotency_key", s.auth_type as "auth_type", s.auth_secret_ref as "auth_secret_ref"
       FROM events e 
       JOIN subscription s
       ON s.id = $1
-      WHERE e.id = $2 and e.deleted_at is null
+      JOIN event_outbox seo
+      ON seo.source_outbox_id = $2
+      WHERE e.id = $3 and e.deleted_at is null
     `,
-      [subscription_id, event_id],
+      [subscription_id, outbox_id, event_id],
     );
     await client.query('COMMIT');
-    const { idempotency_key, auth_type, auth_secret_ref } = res_idem_key_auth.rows[0];
+    const { ingested_at, idempotency_key, auth_type, auth_secret_ref } = res_idem_key_auth.rows[0];
     if (!idempotency_key) {
       throw new NotFoundError(`Idempotency key not found for event ${event_id}`);
     }
@@ -105,6 +108,8 @@ export async function deliverEventHandler(job: Job, client: PoolClient, worker_i
       timeout: 10000,
     });
     finished_at = new Date();
+    eventE2eLatency.observe(Number(finished_at) - Number(ingested_at));
+    eventsDelivered.inc({ status_code: String(res?.status ?? 0) });
     await client.query('BEGIN');
     await insertDeliveryAttempt(
       client,

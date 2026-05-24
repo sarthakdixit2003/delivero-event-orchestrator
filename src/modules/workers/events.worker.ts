@@ -7,6 +7,7 @@ import logger from '@/logger/logger.js';
 import { env } from '@/config/env.js';
 import { transformEventHandler } from './handlers/transform.handler.js';
 import { deliverEventHandler } from './handlers/deliver.handler.js';
+import { eventsDlq, queueJobsCompleted, queueJobsFailed } from '@/metrics/registry.js';
 
 const worker_id = `events-worker-${process.pid}`;
 
@@ -57,7 +58,12 @@ export const eventsWorker = new Worker(
   },
 );
 
+eventsWorker.on('completed', (job) => {
+  queueJobsCompleted.inc();
+});
+
 eventsWorker.on('failed', async (job) => {
+  queueJobsFailed.inc();
   if (!job) return;
   if (job.attemptsMade >= (job.opts?.attempts ?? 0)) {
     if (job.data?.task_type === 'TRANSFORM') {
@@ -81,6 +87,7 @@ eventsWorker.on('failed', async (job) => {
         client.release();
       }
     } else if (job.data?.task_type === 'DELIVER') {
+      eventsDlq.inc();
       const jobData = job.data;
       logger.error(
         `EVENTS WORKER: Event ${jobData?.event_id} failed in worker ${worker_id} after ${job.attemptsMade} attempts: ${job.failedReason}`,

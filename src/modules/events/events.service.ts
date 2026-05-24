@@ -6,6 +6,7 @@ import type { CreateEventDto } from './events.dto.js';
 import { InternalServerError } from '@/errors/internal.error.js';
 import { ConflictError } from '@/errors/conflict.error.js';
 import { EventStatus, type Event } from './events.model.js';
+import { eventsIngested } from '@/metrics/registry.js';
 
 export class EventsService {
   private logger: Logger;
@@ -19,6 +20,7 @@ export class EventsService {
   async createEvent(body: CreateEventDto): Promise<Event | undefined> {
     const client = await this.pool.connect();
     try {
+      eventsIngested.inc();
       const receivedAt = new Date().toISOString();
       const eventStatus = EventStatus.NOT_STARTED;
 

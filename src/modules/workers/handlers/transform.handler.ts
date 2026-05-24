@@ -4,6 +4,7 @@ import { InternalServerError } from '@/errors/internal.error.js';
 import axios from 'axios';
 import logger from '@/logger/logger.js';
 import { env } from '@/config/env.js';
+import { eventsTransformed } from '@/metrics/registry.js';
 
 export async function transformEventHandler(job: any, client: PoolClient, worker_id: string) {
   const { event_id, tenant_id, subscription_id, outbox_id } = job.data;
@@ -56,6 +57,7 @@ export async function transformEventHandler(job: any, client: PoolClient, worker
     const response = await axios.post(`${env.TRANSFORM_API_BASE_URL}/transform`, { payload: original_payload, rule });
 
     logger.info(`Transformed payload for event ${event_id} in worker ${worker_id}: ${response.data}`);
+    eventsTransformed.inc();
     await client.query('BEGIN');
     await client.query(
       `

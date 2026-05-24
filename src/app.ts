@@ -9,12 +9,21 @@ import logger from './logger/logger.js';
 import rulesRouter from './modules/rules/rules.router.js';
 import { cacheMiddleware } from './middleware/index.js';
 import { cacheConfig } from './redis/cache.config.js';
+import { metricsMiddleware } from './middleware/metrics.middleware.js';
+import { register } from './metrics/registry.js';
 
 dotenv.config();
 
 const app: Express = express();
 
 app.use(express.json());
+
+app.use(metricsMiddleware);
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 app.use(tenantAuthMiddleware);
 app.use(rateLimiterMiddleware({ windowInSeconds: 60, maxRequests: 100 }));
