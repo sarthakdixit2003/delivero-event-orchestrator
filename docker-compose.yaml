@@ -13,31 +13,31 @@ services:
       - DB_NAME=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - TRANSFORM_API_BASE_URL=http://transformer:8000
+      - TRANSFORM_API_BASE_URL=http://host.docker.internal:8000
     depends_on:
       - redis
       - postgres
     networks:
       - monitoring
 
-  # worker:
-  #   build: .
-  #   command: npm run start:worker
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DB_HOST=postgres
-  #     - DB_PORT=5432
-  #     - DB_USER=postgres
-  #     - DB_PASSWORD=postgres
-  #     - DB_NAME=postgres
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - TRANSFORM_API_BASE_URL=http://transformer:8000
-  #   depends_on:
-  #     - redis
-  #     - postgres
-  #   networks:
-  #     - monitoring
+  worker:
+    build: .
+    command: npm run start:worker
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TRANSFORM_API_BASE_URL=http://host.docker.internal:8000
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - monitoring
 
   redis:
     image: redis:7
@@ -49,7 +49,7 @@ services:
       - monitoring
 
   postgres:
-    image: postgres:15
+    image: postgres:18.3
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -57,7 +57,7 @@ services:
     ports:
       - '5433:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/
     networks:
       - monitoring
 

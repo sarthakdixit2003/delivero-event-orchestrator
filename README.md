@@ -72,6 +72,25 @@ graph TD
 
 ---
 
+## Performance
+
+The Event Orchestrator is built for high-performance event ingestion and processing. Extensive load testing demonstrates consistent sub-10ms p95 latency even under high throughput.
+
+### Load Test Results
+
+| Metric | Ramp-up (50 VUs) | Sustained (100 RPS) | Sustained (250 RPS) |
+| :--- | :--- | :--- | :--- |
+| **Throughput** | ~25 RPS | 100 RPS | **250 RPS** |
+| **p95 Latency** | 8.83 ms | 4.95 ms | **3.92 ms** |
+| **p99 Latency** | 12.45 ms* | 7.66 ms | **6.83 ms** |
+| **Success Rate** | 100% | 100% | 100% |
+
+*\*Estimated based on p95 for ramp-up scenario.*
+
+For detailed metrics and test methodology, see the **[Performance Benchmark Report](./docs/performance.md)**.
+
+---
+
 ## Folder Structure
 
 ```text

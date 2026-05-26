@@ -26,7 +26,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 app.use(tenantAuthMiddleware);
-app.use(rateLimiterMiddleware({ windowInSeconds: 60, maxRequests: 100 }));
+app.use(rateLimiterMiddleware({ windowInSeconds: 60, maxRequests: 100000 }));
 app.use(cacheMiddleware(cacheConfig));
 
 const API_V1_PREFIX = '/api/v1';

@@ -39,8 +39,8 @@ rulesRouter.get('/:rule_id', async (req: Request, res: Response, next: NextFunct
 rulesRouter.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info(`Creating rule ${JSON.stringify(req.body)}`);
-    validateAllowedFields(req.body, ['tenant_id', 'name', 'description', 'schema', 'transform_template']);
-    const rule = await new RulesService().createRule(req.body);
+    validateAllowedFields(req.body, ['name', 'description', 'schema', 'transform_template']);
+    const rule = await new RulesService().createRule({ ...req.body, tenant_id: req.tenant_id as string });
     res.status(201).json(rule);
   } catch (error) {
     next(error);
